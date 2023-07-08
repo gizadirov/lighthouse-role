@@ -1,38 +1,71 @@
-Role Name
+Lighthouse-role
 =========
 
-A brief description of the role goes here.
+This role can install and configure [Lighthouse](https://github.com/gizadirov/lighthouse-role.git) on Centos 7
 
 Requirements
 ------------
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+You neeed to install and configure `git` and `NGINX` (or another web server) before run this role.
 
 Role Variables
 --------------
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
-
-Dependencies
-------------
-
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+| vars | Description | Value | Location |
+|------|------------|---|---|
+| lighthouse_dir | Where to store Lighthouse files | "/home/{{ ansible_user_id }}/lighthouse" | defaults/main.yml |
+| lighthouse_url | URL of Clickhouse repo | "https://github.com/VKCOM/lighthouse.git" | vars/main.yml |
 
 Example Playbook
 ----------------
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
-
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+```yml
+- name: Install lighthouse
+  hosts: lighthouse
+  handlers:
+    - name: Nginx reload
+      become: true
+      ansible.builtin.service:
+        name: nginx
+        state: restarted
+  pre_tasks:
+    - name: Lighthouse | Install git
+      become: true
+      ansible.builtin.yum:
+        name: git
+        state: present
+    - name: Lighhouse | Install nginx
+      become: true
+      ansible.builtin.yum:
+        name: nginx
+        state: present
+    - name: Lighthouse | Apply nginx config
+      become: true
+      ansible.builtin.template:
+        src: nginx.conf.j2
+        dest: /etc/nginx/nginx.conf
+        mode: 0644
+  roles:
+    - lighthouse-role
+  post_tasks:
+    - name: Lighthouse | Apply config
+      become: true
+      ansible.builtin.template:
+        src: lighthouse_nginx.conf.j2
+        dest: /etc/nginx/conf.d/lighthouse.conf
+        mode: 0644
+        notify: Nginx reload 
+```
 
 License
 -------
 
-BSD
+MIT
 
 Author Information
 ------------------
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+Timur Khakimov
+
+<timur.khakimov@gmail.com>
+
